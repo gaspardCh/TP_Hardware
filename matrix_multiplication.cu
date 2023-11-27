@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-const int THREADS_PER_BLOCK = 512;
-
 void MatrixInit(float *M, int n, int p){
 	int i,j;
 	for (i = 0; i < n; i++){
@@ -31,14 +29,7 @@ void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
 	}
 }
 
-__global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
-	int tid = gridDim.x * blockDim.x;
-	if (tid < n*p){
-		Mout[tid] = M1[tid] + M2[tid];
-	}
-}
-
-__global__ void add_blocks (float *M1, float *M2, float *M3) {
+__global__ void cudaMatrixAdd (float *M1, float *M2, float *M3) {
 	M3[blockIdx.x] = M1[blockIdx.x] + M2[blockIdx.x];
 }
 
@@ -64,15 +55,12 @@ int main(void){
 	MatrixInit(M2, n, p);
 	MatrixPrint(M2, n, p);
 	
-	
+	// Send matrix to GPU
 	cudaMemcpy(M1_cu, M1, size, cudaMemcpyHostToDevice);
 	cudaMemcpy(M2_cu, M2, size, cudaMemcpyHostToDevice);
 	
-	/* Launch add() kernel on device with N threads in N blocks */
-	//cudaMatrixAdd<<<n, p>>>(M1_cu, M2_cu, M3_cu, n, p);
-	//cudaMemcpy(M3, M3_cu, size, cudaMemcpyDeviceToHost);
-	
-	add_blocks<<<N,1>>>(M1_cu, M2_cu, M3_cu);
+	// Add matrixes
+	cudaMatrixAdd<<<N,1>>>(M1_cu, M2_cu, M3_cu);
 	cudaMemcpy(M3, M3_cu, size, cudaMemcpyDeviceToHost);
 	
 	MatrixPrint(M3, n, p);
