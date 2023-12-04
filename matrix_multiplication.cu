@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 void MatrixInit(float *M, int n, int p){
 	int i,j;
@@ -62,8 +63,15 @@ __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout, int n){
 
 int main(void){
 	srand(time(NULL));
-	int n = 3;
-	int p = 3;	
+	
+	int n;
+	printf("n = ");
+	scanf("%d", &n);
+	
+	int p;
+	printf("p = ");
+	scanf("%d", &p);
+	
 	int N = n*p;
 	int size = N*sizeof(float);
 	float *M1_cu, *M2_cu, *M3_cu;
@@ -80,29 +88,56 @@ int main(void){
 
 	// Initialize matrix
 	MatrixInit(M1, n, p);
-	MatrixPrint(M1, n, p);
+	//MatrixPrint(M1, n, p);
 	MatrixInit(M2, n, p);
-	MatrixPrint(M2, n, p);
-	
-	// Send matrix to GPU
-	cudaMemcpy(M1_cu, M1, size, cudaMemcpyHostToDevice);
-	cudaMemcpy(M2_cu, M2, size, cudaMemcpyHostToDevice);
-	
-	// Add matrixes
-	//cudaMatrixAdd<<<N,1>>>(M1_cu, M2_cu, M3_cu);
-	//cudaMemcpy(M3, M3_cu, size, cudaMemcpyDeviceToHost);
+	//MatrixPrint(M2, n, p);
 	
 	dim3 dimBlock(N,N);
 	dim3 dimGrid(ceil(N/16.0), ceil(N/16.0));
 	
 	// Multiply matrixes
+	
+	// CPU
+	clock_t begin_CPU = clock();
 	MatrixMult(M1, M2, M4, n);
+	clock_t end_CPU = clock();
+	double time_spent_CPU = (double)(end_CPU - begin_CPU) / CLOCKS_PER_SEC;
+	
+	// GPU
+	clock_t begin_GPU = clock();
+	
+	cudaMemcpy(M1_cu, M1, size, cudaMemcpyHostToDevice);
+	cudaMemcpy(M2_cu, M2, size, cudaMemcpyHostToDevice);
 	cudaMatrixMult<<<dimBlock, dimGrid>>>(M1_cu, M2_cu, M3_cu, n);
 	cudaMemcpy(M3, M3_cu, size, cudaMemcpyDeviceToHost);
 	
+	clock_t end_GPU = clock();
+	double time_spent_GPU = (double)(end_GPU - begin_GPU) / CLOCKS_PER_SEC;
+	
+	// Add matrixes
+	
+	// GPU
+	//begin_GPU = clock();
+	
+	cudaMemcpy(M1_cu, M1, size, cudaMemcpyHostToDevice);
+	cudaMemcpy(M2_cu, M2, size, cudaMemcpyHostToDevice);
+	cudaMatrixAdd<<<1,N/16>>>(M1_cu, M2_cu, M3_cu);
+	cudaMemcpy(M3, M3_cu, size, cudaMemcpyDeviceToHost);
+	
+	//end_GPU = clock();
+	//time_spent_GPU = (double)(end_GPU - begin_GPU) / CLOCKS_PER_SEC;
+	
+	// CPU
+	//begin_CPU = clock();
+	MatrixAdd(M1, M2, M4, n, p);
+	//end_CPU = clock();
+	//time_spent_CPU = (double)(end_CPU - begin_CPU) / CLOCKS_PER_SEC;
+	
 	// Print result
-	MatrixPrint(M3, n, p);
-	MatrixPrint(M4, n, p);
+	//MatrixPrint(M3, n, p);
+	printf("exec time CPU : %f\n", time_spent_CPU);
+	//MatrixPrint(M4, n, p);
+	printf("exec time GPU : %f\n", time_spent_GPU);
 
 	
 	
