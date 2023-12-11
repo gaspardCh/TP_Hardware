@@ -91,15 +91,13 @@ __global__ void cudaMatrixConv2D(float *data, float *kernel, float *Mout, int n_
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
 	
 	float coeff;
-	
-	if ( (n_kernel/2)<row && row<(n_data-n_kernel/2) && (p_kernel/2)<col && col<(p_data-p_kernel/2) ){
+		
+	if ( (n_kernel/2)<=row && row<(n_data-n_kernel/2) && (p_kernel/2)<=col && col<(p_data-p_kernel/2) ){
 		float result = 0;
-		printf("col = %d, row = %d\n", col, row);
 		for (int i = 0; i<n_kernel; i++){
 			for(int j = 0; j<p_kernel; j++){
+				
 				coeff = data[(row+i-n_kernel/2)*n_data + col+j-p_kernel/2]*kernel[i*n_kernel+j];
-				//printf("i = %d, j = %d, coeff = %f\n",i,j,coeff);
-				//printf("data index = %d, kernel index = %d\n",(row+i)*n_data + col+j-p_kernel/2, i*n_kernel+j);
 				result += coeff;
 			}
 		}	
@@ -127,7 +125,7 @@ int main(void){
 	
 	
 	int n_kernel = 3;
-	int n_data = 3;
+	int n_data = 5;
 	float *test_data = (float*) malloc(n_data*n_data*sizeof(float));
 	float *test_kernel = (float*) malloc(n_kernel*n_kernel*sizeof(float));
 	MatrixInit(test_data, n_data, n_data, 0, 1);
@@ -146,7 +144,7 @@ int main(void){
 	
 	cudaMemcpy(data_cu, test_data, n_data*n_data*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(kernel_cu, test_kernel, n_kernel*n_kernel*sizeof(float), cudaMemcpyHostToDevice);
-	cudaMatrixConv2D<<<n_data*n_data, 1>>>(data_cu, kernel_cu, conv_cu, n_data, n_data, n_kernel, n_kernel);
+	cudaMatrixConv2D<<<dimBlock, dimGrid>>>(data_cu, kernel_cu, conv_cu, n_data, n_data, n_kernel, n_kernel);
 	cudaMemcpy(test_conv, conv_cu, (n_data-n_kernel+1)*(n_data-n_kernel+1)*sizeof(float), cudaMemcpyDeviceToHost);
 	
 	
