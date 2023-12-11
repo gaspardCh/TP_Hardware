@@ -121,7 +121,7 @@ __global__ void cudaMatrixConv3D(float *data, float *kernel, float *Mout, int n_
 					result += coeff;
 				}
 			}
-			Mout[k*(n_data-n_kernel/2-1)*(p_data-p_kernel/2-1)+(row-n_kernel/2)*(n_data-n_kernel+1)+col-p_kernel/2] = result;
+			Mout[k*(n_data-n_kernel/2-1)*(p_data-p_kernel/2-1)+(row-n_kernel/2-1)*(n_data-n_kernel/2-1)+col-p_kernel/2-1] = result; //A REVOIR
 		}
 	}
 }
@@ -142,10 +142,16 @@ __global__ void cudaMatrixSubSampling3D(float *data, float *Mout, int n_data, in
 
 int main(void){
 	srand(time(NULL));
-	int raw_data_size = 32*32*sizeof(float);
-	int C1_data_size = 6*28*28*sizeof(float);
-	int S1_data_size = 6*14*14*sizeof(float);
-	int C1_kernel_size = 6*5*5*sizeof(float);
+	int n_raw_data = 10;
+	int n_kernel = 5;
+	int n_C1_data = n_raw_data - n_kernel +1;
+	int n_S1_data = n_C1_data/2;
+	int nb_kernel = 6;
+	
+	int raw_data_size = n_raw_data*n_raw_data*sizeof(float);
+	int C1_data_size = nb_kernel*n_C1_data*n_C1_data*sizeof(float);
+	int S1_data_size = nb_kernel*n_S1_data*n_S1_data*sizeof(float);
+	int C1_kernel_size = nb_kernel*n_kernel*n_kernel*sizeof(float);
 	
 	
 	float *raw_data = (float*) malloc(raw_data_size);
@@ -153,47 +159,71 @@ int main(void){
 	float *S1_data = (float*) malloc(S1_data_size);
 	float *C1_kernel = (float*) malloc(C1_kernel_size);
 	
-	MatrixInit(raw_data, 32, 32, 0, 1);
-	MatrixInit(C1_data, 6, 28, 28, 0);
-	MatrixInit(S1_data, 6, 14, 14, 0);
-	MatrixInit(C1_kernel, 6, 5, 5, 1);
+	MatrixInit(raw_data, n_raw_data, n_raw_data, 0, 1);
+	MatrixInit(C1_data, nb_kernel, n_C1_data, n_C1_data, 0);
+	MatrixInit(S1_data, nb_kernel, n_S1_data, n_S1_data, 0);
+	MatrixInit(C1_kernel, nb_kernel, n_kernel, n_kernel, 1);
 	
+	float *raw_data_cu;
+	float *C1_data_cu;
+	float *S1_data_cu;
+	float *C1_kernel_cu;
 	
-	int n_kernel = 3;
-	int n_data = 6;
-	int d_kernel = 2;
-	float *test_data = (float*) malloc(n_data*n_data*sizeof(float));
-	float *test_kernel = (float*) malloc(n_kernel*n_kernel*d_kernel*sizeof(float));
-	MatrixInit(test_data, n_data, n_data, 0, 1);
-	MatrixInit(test_kernel, n_kernel, n_kernel, d_kernel, 1);
+	cudaMalloc((void **) &raw_data_cu, n_raw_data*n_raw_data*sizeof(float));
+	cudaMalloc((void **) &C1_data_cu, nb_kernel*n_C1_data*n_C1_data*sizeof(float));
+	cudaMalloc((void **) &S1_data_cu, nb_kernel*n_S1_data*n_S1_data*sizeof(float));
+	cudaMalloc((void **) &C1_kernel_cu, nb_kernel*n_kernel*n_kernel*sizeof(float));
+
+	cudaMemcpy(raw_data_cu, raw_data, n_raw_data*n_raw_data*sizeof(float), cudaMemcpyHostToDevice);	
+	cudaMemcpy(C1_kernel_cu, C1_kernel, nb_kernel*n_kernel*n_kernel*sizeof(float), cudaMemcpyHostToDevice);	
 	
+	dim3 dimBlock(n_raw_data, n_raw_data);
+	cudaMatrixConv3D<<<1, dimBlock>>>(raw_data_cu, C1_kernel_cu, C1_data_cu, n_raw_data, n_raw_data, n_kernel, n_kernel, nb_kernel);
 	
-	float *test_conv = (float*) malloc((n_data-n_kernel+1)*(n_data-n_kernel+1)*d_kernel*sizeof(float));
-	float *test_sub_samp = (float*) malloc(2*2*2*sizeof(float));
+	dim3 dimBlock_2(n_S1_data, n_S1_data);
+	cudaMatrixSubSampling3D<<<1, dimBlock_2>>>(C1_data_cu, S1_data_cu, n_C1_data, n_C1_data, nb_kernel);
 	
-	int N = n_data*n_data;
-	dim3 dimBlock(N,N);
-	dim3 dimGrid(ceil(N/16.0), ceil(N/16.0));
-	float *data_cu, *kernel_cu, *conv_cu, *sub_samp;
-	cudaMalloc((void **) &data_cu, n_data*n_data*sizeof(float));
-	cudaMalloc((void **) &kernel_cu, n_kernel*n_kernel*d_kernel*sizeof(float));
-	cudaMalloc((void **) &conv_cu, (n_data-n_kernel+1)*(n_data-n_kernel+1)*d_kernel*sizeof(float));
-	cudaMalloc((void **) &sub_samp, 2*2*2*sizeof(float));
+	cudaMemcpy(S1_data, S1_data_cu, nb_kernel*n_S1_data*n_S1_data*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(C1_data, C1_data_cu, nb_kernel*n_C1_data*n_C1_data*sizeof(float), cudaMemcpyDeviceToHost);
 	
-	cudaMemcpy(data_cu, test_data, n_data*n_data*sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(kernel_cu, test_kernel, n_kernel*n_kernel*d_kernel*sizeof(float), cudaMemcpyHostToDevice);
-	cudaMatrixConv3D<<<dimBlock, dimGrid>>>(data_cu, kernel_cu, conv_cu, n_data, n_data, n_kernel, n_kernel, d_kernel);
-	cudaMatrixSubSampling3D<<<dimBlock, dimGrid>>>(conv_cu, sub_samp, 4, 4, 2);
-	cudaMemcpy(test_conv, conv_cu, (n_data-n_kernel+1)*(n_data-n_kernel+1)*d_kernel*sizeof(float), cudaMemcpyDeviceToHost);
-	cudaMemcpy(test_sub_samp, sub_samp, 2*2*2*sizeof(float), cudaMemcpyDeviceToHost);
 	
 	printf("data : \n");
-	MatrixPrint2D(test_data, n_data, n_data);
+	MatrixPrint2D(raw_data, n_raw_data, n_raw_data);
 	printf("kernels : \n");
-	MatrixPrint3D(test_kernel, d_kernel, n_kernel, n_kernel);
+	MatrixPrint3D(C1_kernel, nb_kernel, n_kernel, n_kernel);
 	printf("conv result : \n");
-	MatrixPrint3D(test_conv, d_kernel, (n_data-n_kernel+1), (n_data-n_kernel+1));
+	MatrixPrint3D(C1_data, nb_kernel, n_C1_data, n_C1_data);
 	printf("sub samp result : \n");
-	MatrixPrint3D(test_sub_samp, 2, 2, 2);
+	MatrixPrint3D(S1_data, nb_kernel, n_S1_data, n_S1_data);
 	
 }
+
+	// TESTING
+	
+	//int n_kernel = 3;
+	//int n_data = 6;
+	//int d_kernel = 2;
+	//float *test_data = (float*) malloc(n_data*n_data*sizeof(float));
+	//float *test_kernel = (float*) malloc(n_kernel*n_kernel*d_kernel*sizeof(float));
+	//MatrixInit(test_data, n_data, n_data, 0, 1);
+	//MatrixInit(test_kernel, n_kernel, n_kernel, d_kernel, 1);
+	
+	
+	//float *test_conv = (float*) malloc((n_data-n_kernel+1)*(n_data-n_kernel+1)*d_kernel*sizeof(float));
+	//float *test_sub_samp = (float*) malloc(2*2*2*sizeof(float));
+	
+	//int N = n_data*n_data;
+	//dim3 dimBlock(N,N);
+	//dim3 dimGrid(ceil(N/16.0), ceil(N/16.0));
+	//float *data_cu, *kernel_cu, *conv_cu, *sub_samp;
+	//cudaMalloc((void **) &data_cu, n_data*n_data*sizeof(float));
+	//cudaMalloc((void **) &kernel_cu, n_kernel*n_kernel*d_kernel*sizeof(float));
+	//cudaMalloc((void **) &conv_cu, (n_data-n_kernel+1)*(n_data-n_kernel+1)*d_kernel*sizeof(float));
+	//cudaMalloc((void **) &sub_samp, 2*2*2*sizeof(float));
+	
+	//cudaMemcpy(data_cu, test_data, n_data*n_data*sizeof(float), cudaMemcpyHostToDevice);
+	//cudaMemcpy(kernel_cu, test_kernel, n_kernel*n_kernel*d_kernel*sizeof(float), cudaMemcpyHostToDevice);
+	//cudaMatrixConv3D<<<dimBlock, dimGrid>>>(data_cu, kernel_cu, conv_cu, n_data, n_data, n_kernel, n_kernel, d_kernel);
+	//cudaMatrixSubSampling3D<<<dimBlock, dimGrid>>>(conv_cu, sub_samp, 4, 4, 2);
+	//cudaMemcpy(test_conv, conv_cu, (n_data-n_kernel+1)*(n_data-n_kernel+1)*d_kernel*sizeof(float), cudaMemcpyDeviceToHost);
+	//cudaMemcpy(test_sub_samp, sub_samp, 2*2*2*sizeof(float), cudaMemcpyDeviceToHost);
