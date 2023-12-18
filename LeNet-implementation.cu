@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <math.h>
 
 void MatrixInit(float *M, int n, int p, int d, float coeff){ //n,p,d
 	int i,j,k;
@@ -105,6 +106,18 @@ __global__ void cudaMatrixConv2D(float *data, float *kernel, float *Mout, int n_
 	}
 }
 
+__device__ float activation_tanh(float M){
+	return tanh(M);
+}
+
+__global__ void activation_matrix_tanh(float *M, n_size, p_size, d_size, depth_size){
+	int row = threadIdx.x;
+	int col = threadIdx.y;
+	int d = blockIdx.x; 
+	int depth = blockIdx.y;
+	M[depth * n_size * p_size * d_size + d * n_size * p_size + row * p_size + col] = tanh(M[depth * n_size * p_size * d_size + d * n_size * p_size + row * p_size + col]);
+}
+
 
 __global__ void cudaMatrixConv3D(float *data, float *kernel, float *Mout, int n_data, int p_data, int n_kernel, int p_kernel, int d_kernel){
 	int row = threadIdx.x;
@@ -126,9 +139,38 @@ __global__ void cudaMatrixConv3D(float *data, float *kernel, float *Mout, int n_
 		}
 	}
 	
-	Mout[index + d_offset_out]=result;
-		
+	Mout[index + d_offset_out]=activation_tanh(result);	
 	
+	
+}
+
+
+__global__ void cudaMatrixConv4D(float *data, float *kernel, float *Mout, int n_data, int p_data, int depth_data, int n_kernel, int p_kernel, int d_kernel, int depth_kernel){
+	int row = threadIdx.x;
+	int col = threadIdx.y;
+	
+	int p_C1 = p_data - p_kernel + 1;
+	int n_C1 = n_data - n_kernel + 1;
+	int index = row * p_C1 + col;
+	
+	int k = blockIdx.x; 
+	int d = blockIdx.y;
+	
+	int d_offset_kernel = k * (n_kernel * p_kernel);
+	int d_offset_out = k * (n_C1 * p_C1);	
+	
+	int depth_offset_kernel = d * n_kernel * p_kernel * depth_kernel
+	int depth_offset_out = d * n_C1 * pC1 * depth_data
+	
+	
+	float result = 0;
+	for (int i = 0; i<n_kernel; i++){
+		for(int j = 0; j<p_kernel; j++){
+			result += data[d * n_data * p_data + (row + i) * p_data + (col + j)] * kernel[i * p_kernel + j + d_offset_kernel + depth_offset_kernel + depth_offset_kernel];
+		}
+	}
+	
+	Mout[index + d_offset_out + depth_offset_out] += result;	
 	
 	
 }
@@ -147,41 +189,81 @@ __global__ void cudaMatrixSubSampling3D(float *data, float *Mout, int n_data, in
 }
 
 
+
 int main(void){
 	srand(time(NULL));
+	
+	// Init size
 	int n_raw_data = 32;
 	int n_kernel = 5;
-	int n_C1_data = n_raw_data - n_kernel +1;
-	int n_S1_data = n_C1_data/2;
 	int nb_kernel = 6;
-	printf("n_C1_data=%d n_S1_data=%d \n", n_C1_data, n_S1_data);
 	
+	int n_C1_data = n_raw_data - n_kernel +1;
+	int n_S2_data = n_C1_data/2;
+	
+	int n_kernel_3 = 5;
+	int nb_kernel_3 = 16;
+	int n_C3_data = n_S2_data - n_kernel_3 + 1;
+	int n_S4_data = n_C3_data/2;
+	
+	// init size of matrixes
 	int raw_data_size = n_raw_data*n_raw_data*sizeof(float);
-	int C1_data_size = nb_kernel*n_C1_data*n_C1_data*sizeof(float);
-	int S1_data_size = nb_kernel*n_S1_data*n_S1_data*sizeof(float);
 	int C1_kernel_size = nb_kernel*n_kernel*n_kernel*sizeof(float);
+
+	int C1_data_size = nb_kernel*n_C1_data*n_C1_data*sizeof(float);
+	int S2_data_size = nb_kernel*n_S2_data*n_S2_data*sizeof(float);
 	
+	int C3_kernel_size = nb_kernel_3 * n_kernel_3 * n_kernel_3 * sizeof(float);
+	int C3_data_size = nb_kernel_3*n_C3_data*n_C3_data*sizeof(float);
+	int S4_data_size = nb_kernel_3*n_S4_data*n_S4_data*sizeof(float);
 	
+	// init pointers
 	float *raw_data = (float*) malloc(raw_data_size);
-	float *C1_data = (float*) malloc(C1_data_size);
-	float *S1_data = (float*) malloc(S1_data_size);
 	float *C1_kernel = (float*) malloc(C1_kernel_size);
 	
+	float *C1_data = (float*) malloc(C1_data_size);
+	float *S2_data = (float*) malloc(S2_data_size);
+	
+	float *C3_kernel = (float*) malloc(C3_kernel_size);
+	float *C3_data = (float*) malloc(C3_data_size);
+	float *S4_data = (float*) malloc(S4_data_size);
+	
+	// Init matrixes values
 	MatrixInit(raw_data, n_raw_data, n_raw_data, 0, 1);
-	MatrixInit(C1_data, nb_kernel, n_C1_data, n_C1_data, 0);
-	MatrixInit(S1_data, nb_kernel, n_S1_data, n_S1_data, 0);
 	MatrixInit(C1_kernel, nb_kernel, n_kernel, n_kernel, 1);
 	
+	MatrixInit(C1_data, nb_kernel, n_C1_data, n_C1_data, 0);
+	MatrixInit(S2_data, nb_kernel, n_S2_data, n_S2_data, 0);
+	
+	MatrixInit(C3_kernel, nb_kernel_3, n_kernel_3, n_kernel_3, 1);
+	MatrixInit(C3_data, nb_kernel_3, n_C3_data, n_C3_data, 1);
+	MatrixInit(S4_data, nb_kernel, n_S4_data, n_S4_data, 1);
+	
+	
+	//Init cuda matrix
+	
 	float *raw_data_cu;
-	float *C1_data_cu;
-	float *S1_data_cu;
 	float *C1_kernel_cu;
+	
+	float *C1_data_cu;
+	float *S2_data_cu;
+	
+	float *C3_kernel_cu;
+	float *C3_data_cu;
+	float *S4_data_cu;
+	
 	
 	cudaMalloc((void **) &raw_data_cu, n_raw_data*n_raw_data*sizeof(float));
 	cudaMalloc((void **) &C1_data_cu, nb_kernel*n_C1_data*n_C1_data*sizeof(float));
-	cudaMalloc((void **) &S1_data_cu, nb_kernel*n_S1_data*n_S1_data*sizeof(float));
+	cudaMalloc((void **) &S2_data_cu, nb_kernel*n_S2_data*n_S2_data*sizeof(float));
 	cudaMalloc((void **) &C1_kernel_cu, nb_kernel*n_kernel*n_kernel*sizeof(float));
-
+	
+	cudaMalloc((void **) &C3_kernel_cu, nb_kernel_3 * n_kernel_3 * n_kernel_3 * sizeof(float));
+	cudaMalloc((void **) &C3_data_cu, nb_kernel_3*n_C3_data*n_C3_data*sizeof(float));
+	cudaMalloc((void **) &S4_data_cu,  nb_kernel_3*n_S4_data*n_S4_data*sizeof(float);
+	
+	
+	
 	cudaMemcpy(raw_data_cu, raw_data, n_raw_data*n_raw_data*sizeof(float), cudaMemcpyHostToDevice);	
 	cudaMemcpy(C1_kernel_cu, C1_kernel, nb_kernel*n_kernel*n_kernel*sizeof(float), cudaMemcpyHostToDevice);	
 	
@@ -189,10 +271,12 @@ int main(void){
 	dim3 dimBlock(n_C1_data, n_C1_data);
 	cudaMatrixConv3D<<<dimGrid, dimBlock>>>(raw_data_cu, C1_kernel_cu, C1_data_cu, n_raw_data, n_raw_data, n_kernel, n_kernel, nb_kernel);
 	
-	dim3 dimBlock_2(n_S1_data, n_S1_data);
-	cudaMatrixSubSampling3D<<<1, dimBlock_2>>>(C1_data_cu, S1_data_cu, n_C1_data, n_C1_data, nb_kernel);
+	dim3 dimBlock_2(n_S2_data, n_S2_data);
+	cudaMatrixSubSampling3D<<<1, dimBlock_2>>>(C1_data_cu, S2_data_cu, n_C1_data, n_C1_data, nb_kernel);
 	
-	cudaMemcpy(S1_data, S1_data_cu, nb_kernel*n_S1_data*n_S1_data*sizeof(float), cudaMemcpyDeviceToHost);
+	
+	
+	cudaMemcpy(S2_data, S2_data_cu, nb_kernel*n_S2_data*n_S2_data*sizeof(float), cudaMemcpyDeviceToHost);
 	cudaMemcpy(C1_data, C1_data_cu, nb_kernel*n_C1_data*n_C1_data*sizeof(float), cudaMemcpyDeviceToHost);
 	
 	
@@ -203,7 +287,7 @@ int main(void){
 	printf("conv result : \n");
 	MatrixPrint3D(C1_data, nb_kernel, n_C1_data, n_C1_data);
 	printf("sub samp result : \n");
-	MatrixPrint3D(S1_data, nb_kernel, n_S1_data, n_S1_data);
+	MatrixPrint3D(S2_data, nb_kernel, n_S2_data, n_S2_data);
 	
 }
 
