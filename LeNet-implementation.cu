@@ -97,7 +97,7 @@ __global__ void cudaMatrixConv2D(float *data, float *kernel, float *Mout, int n_
 		for (int i = 0; i<n_kernel; i++){
 			for(int j = 0; j<p_kernel; j++){
 				
-				coeff = data[(row+i-n_kernel/2)*n_data + col+j-p_kernel/2]*kernel[i*n_kernel+j];
+				coeff = data[(row+i-n_kernel/2)*n_data + col+j-p_kernel/2]*kernel[i*p_kernel+j];
 				result += coeff;
 			}
 		}	
@@ -107,23 +107,30 @@ __global__ void cudaMatrixConv2D(float *data, float *kernel, float *Mout, int n_
 
 
 __global__ void cudaMatrixConv3D(float *data, float *kernel, float *Mout, int n_data, int p_data, int n_kernel, int p_kernel, int d_kernel){
-	int row = blockIdx.y * blockDim.y + threadIdx.y;
-	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	int row = threadIdx.x;
+	int col = threadIdx.y;
 	
-	float coeff;
-		
-	if ( (n_kernel/2)<=row && row<(n_data-n_kernel/2) && (p_kernel/2)<=col && col<(p_data-p_kernel/2) ){
-		for (int k = 0; k<d_kernel; k++){
-			float result = 0;
-			for (int i = 0; i<n_kernel; i++){
-				for(int j = 0; j<p_kernel; j++){
-					coeff = data[(row+i-n_kernel/2)*n_data + col+j-p_kernel/2]*kernel[k*n_kernel*p_kernel+i*n_kernel+j];
-					result += coeff;
-				}
-			}
-			Mout[k*(n_data-n_kernel/2-1)*(p_data-p_kernel/2-1)+(row-n_kernel/2-1)*(n_data-n_kernel/2-1)+col-p_kernel/2-1] = result; //A REVOIR
+	int p_C1 = p_data - p_kernel + 1;
+	int n_C1 = n_data - n_kernel + 1;
+	int index = row * p_C1 + col;
+	
+	int k = blockIdx.x; 
+	
+	int d_offset_kernel = k * (n_kernel * p_kernel);
+	int d_offset_out = k * (n_C1 * p_C1);	
+	
+	float result = 0;
+	for (int i = 0; i<n_kernel; i++){
+		for(int j = 0; j<p_kernel; j++){
+			result += data[(row + i) * p_data + (col + j)] * kernel[i * p_kernel + j + d_offset_kernel];
 		}
 	}
+	
+	Mout[index + d_offset_out]=result;
+		
+	
+	
+	
 }
 
 __global__ void cudaMatrixSubSampling3D(float *data, float *Mout, int n_data, int p_data, int d_data){
@@ -142,11 +149,12 @@ __global__ void cudaMatrixSubSampling3D(float *data, float *Mout, int n_data, in
 
 int main(void){
 	srand(time(NULL));
-	int n_raw_data = 10;
+	int n_raw_data = 32;
 	int n_kernel = 5;
 	int n_C1_data = n_raw_data - n_kernel +1;
 	int n_S1_data = n_C1_data/2;
 	int nb_kernel = 6;
+	printf("n_C1_data=%d n_S1_data=%d \n", n_C1_data, n_S1_data);
 	
 	int raw_data_size = n_raw_data*n_raw_data*sizeof(float);
 	int C1_data_size = nb_kernel*n_C1_data*n_C1_data*sizeof(float);
@@ -177,8 +185,9 @@ int main(void){
 	cudaMemcpy(raw_data_cu, raw_data, n_raw_data*n_raw_data*sizeof(float), cudaMemcpyHostToDevice);	
 	cudaMemcpy(C1_kernel_cu, C1_kernel, nb_kernel*n_kernel*n_kernel*sizeof(float), cudaMemcpyHostToDevice);	
 	
-	dim3 dimBlock(n_raw_data, n_raw_data);
-	cudaMatrixConv3D<<<1, dimBlock>>>(raw_data_cu, C1_kernel_cu, C1_data_cu, n_raw_data, n_raw_data, n_kernel, n_kernel, nb_kernel);
+	dim3 dimGrid(nb_kernel,1,1);
+	dim3 dimBlock(n_C1_data, n_C1_data);
+	cudaMatrixConv3D<<<dimGrid, dimBlock>>>(raw_data_cu, C1_kernel_cu, C1_data_cu, n_raw_data, n_raw_data, n_kernel, n_kernel, nb_kernel);
 	
 	dim3 dimBlock_2(n_S1_data, n_S1_data);
 	cudaMatrixSubSampling3D<<<1, dimBlock_2>>>(C1_data_cu, S1_data_cu, n_C1_data, n_C1_data, nb_kernel);
