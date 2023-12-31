@@ -1,5 +1,9 @@
 # TP_Hardware
 
+<img width="637" alt="image" src="https://github.com/gaspardCh/TP_Hardware/assets/118471792/d6ec0f52-16a8-4fb7-b94a-f3f2c3d84015">
+
+
+
 En théorie, la complexité est :
 pour l'addition, en O(n*p) pour le CPU et O(1) ? pour le GPU 
 pour la multiplication, en O(n³) pour le CPU et en O(n) pour le GPU
