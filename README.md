@@ -40,4 +40,17 @@ Il n'y a d'intérêt à utiliser le GPU que si la partie parallélisée permet d
 
 Partie 2 - Premières couches du réseau de neurone LeNet-5 : Convolution 2D et subsampling
 
+La convolution et le sous-échantillonnage peuvent être facilement parallélisés grâce au GPU.
+
+
+
+
+
+
+
+
+
+
+
+
 
