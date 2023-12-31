@@ -40,7 +40,7 @@ Il n'y a d'intérêt à utiliser le GPU que si la partie parallélisée permet d
 
 Partie 2 - Premières couches du réseau de neurone LeNet-5 : Convolution 2D et subsampling
 
-La convolution et le sous-échantillonnage peuvent être facilement parallélisés grâce au GPU.
+La convolution et le sous-échantillonnage peuvent être facilement parallélisés grâce au GPU. De plus en regardent les dimensions des matrices dans les couches de modèle on peut voir nettement que l'utilisation de GPU est une bonne choix pour accélerer les calculs. 
 
 
 
@@ -74,6 +74,9 @@ dense_2: (84+1)x10= 850
 On a donc 61706 trainable parameters (on n'as pas fait une batch normalization et tous les parameters sont appris).
 
 On a recuperé tous les poids dans le fichier FashionMNIST_weights.h5.
+
+
+
 
 
 
