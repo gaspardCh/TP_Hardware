@@ -15,9 +15,12 @@ Partie 1 - Prise en main de Cuda : Multiplication de matrices
 La multiplication et l'addition des matrices sont 2 opérations pour lequel chaque terme de l'output peut être calculé indépendamment des autres termes de sortie. Cuda peut nous aider à faire ces calculs en parallèle. Mais s'agit-il de la meilleure stratégie, quelle que soit la taille de l'entrée ?
 
 En théorie, la complexité est :
+
 -pour l'addition:
+
  pour le CPU: en O(n*p) (On a n*p termes qui sont calculés consécutivement l'un après l'autre)
- pour le GPU: O(1) 
+ 
+ pour le GPU: O(1) (tous les termes sont calculés en même temps)
 
 
 pour la multiplication, en O(n³) pour le CPU et en O(n) pour le GPU
