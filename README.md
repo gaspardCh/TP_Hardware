@@ -52,9 +52,28 @@ Nous pouvons utiliser le fichier Python pour entraîner le réseau neuronal et o
 Nous avons obtenu des résultats suffisament satisfaisants pour récuperer les parametres:
 <img width="530" alt="image" src="https://github.com/gaspardCh/TP_Hardware/assets/118471792/b538b7be-196d-4831-979c-fd8d43b845ab">
 
+On a obtenu un grand modèle:
+
+<img width="424" alt="image" src="https://github.com/gaspardCh/TP_Hardware/assets/118471792/469c8d00-8b43-4306-8552-cef8b09e147e">
 
 
+Explications du nombre de paramètres :
 
+conv2d: ((width of kernel)x(length of kernel)+ 1 (for the bias))x(depth of Kernel)=(5x5+1)x6=156 parameters
+
+conv2d_1: ((width of kernel)x(length of kernel)x(depth of initial Kernel)+ 1 (for the bias))x(depth of Kernel)=(5x5x6+1)x16=2416 parameters
+
+Average_pooling and flatten layers- we do not learn parameters
+
+Dense layers: (input size + 1(bias))x (output size)
+
+dense: (400+1)x120= 48120
+dense_1: (120+1)x84= 10164
+dense_2: (84+1)x10= 850
+
+On a donc 61706 trainable parameters (on n'as pas fait une batch normalization et tous les parameters sont appris).
+
+On a recuperé tous les poids dans le fichier FashionMNIST_weights.h5.
 
 
 
