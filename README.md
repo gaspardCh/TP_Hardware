@@ -92,7 +92,7 @@ Les dimensions des matrices sont appropriés pour utiliser les GPUs pour accéle
 
 On a réussi à afficher les images de la dataset.
 
-Enfin, nous obtiendrons un modèle capable de calculer rapidement des résultats en utilisant des poids pré-entraînés, grâce à la parallélisation GPU.
+Enfin, nous obtiendrons un modèle capable de calculer rapidement des résultats en utilisant des poids pré-entraînés, grâce à la parallélisation GPU. Cette méthode peut avoir beaucoup des applications très intéressantes à cause de l'accélération notable des calculs qui peut être important pour l'IA livestream sans grande latence.
 
 
 
