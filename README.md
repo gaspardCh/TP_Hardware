@@ -83,6 +83,8 @@ Dense layer- Multiplier le vecteur d'input par les poids de la couche et ajouter
 
 Les dimensions des matrices sont appropriés pour utiliser les GPUs pour accélerer les calculs.
 
+On a réussi à afficher les images de la dataset.
+
 Enfin, nous obtiendrons un modèle capable de calculer rapidement des résultats en utilisant des poids pré-entraînés, grâce à la parallélisation GPU.
 
 
