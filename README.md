@@ -45,6 +45,15 @@ La convolution et le sous-échantillonnage peuvent être facilement parallélis�
 
 
 
+Partie 3 - Ajout les poids et les dernières couches
+
+Nous pouvons utiliser le fichier Python pour entraîner le réseau neuronal et obtenir les poids et les bias du modèle. 
+
+Nous avons obtenu des résultats suffisament satisfaisants pour récuperer les parametres:
+<img width="530" alt="image" src="https://github.com/gaspardCh/TP_Hardware/assets/118471792/b538b7be-196d-4831-979c-fd8d43b845ab">
+
+
+
 
 
 
