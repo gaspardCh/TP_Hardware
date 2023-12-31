@@ -32,3 +32,12 @@ En théorie, la complexité est :
 on mesure le temps d'exécution des différentes opération pour n = p = 100: 
 pour l'addition, environ 64µs pour le CPU et 146µs pour le GPU
 pour la multiplication, environ 3.94 ms pour le CPU et 0.11ms pour le GPU
+
+Conclusions :
+Le temps nécessaire au transfert d'informations entre le CPU et le GPU n'est pas toujours négligeable au détriment d'autres commandes.
+Il n'y a d'intérêt à utiliser le GPU que si la partie parallélisée permet de gagner plus de temps que le transfert d'informations. Dans notre cas, cela est envisageable avec des matrices d'entrée de grande taille.  
+
+
+Partie 2 - Premières couches du réseau de neurone LeNet-5 : Convolution 2D et subsampling
+
+
