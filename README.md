@@ -12,7 +12,7 @@ On peut voir que le LeNet5 a beaucoup des couches qui sont parallélisable- les 
 
 Partie 1 - Prise en main de Cuda : Multiplication de matrices
 
-La multiplication et l'addition des matrices sont 2 opérations pour lequel chaque terme de l'output peut être calculé indépendamment des autres termes de sortie. Cuda peut nous aider à faire ces calculs en parallèle. Mais s'agit-il de la meilleure stratégie, quelle que soit la taille de l'entrée ?
+La multiplication et l'addition des matrices sont 2 opérations pour lequel chaque terme de l'output peut être calculé indépendamment des autres termes de sortie. Cuda peut nous aider à faire ces calculs en parallèle. Maisest-ce que cette stratégie est mielleure que l'utilisation de CPU, quelle que soit la taille de l'entrée ?
 
 En théorie, la complexité est :
 
@@ -34,7 +34,7 @@ pour l'addition, environ 64µs pour le CPU et 146µs pour le GPU
 pour la multiplication, environ 3.94 ms pour le CPU et 0.11ms pour le GPU
 
 Conclusions :
-Le temps nécessaire au transfert d'informations entre le CPU et le GPU n'est pas toujours négligeable au détriment d'autres commandes.
+Le temps nécessaire au transfert d'informations entre le CPU et le GPU n'est pas toujours négligeable par rapport les autres commandes et peut devenir le bottleneck.
 Il n'y a d'intérêt à utiliser le GPU que si la partie parallélisée permet de gagner plus de temps que le transfert d'informations. Dans notre cas, cela est envisageable avec des matrices d'entrée de grande taille.  
 
 
@@ -42,12 +42,17 @@ Partie 2 - Premières couches du réseau de neurone LeNet-5 : Convolution 2D et 
 
 La convolution et le sous-échantillonnage peuvent être facilement parallélisés grâce au GPU. De plus en regardent les dimensions des matrices dans les couches de modèle on peut voir nettement que l'utilisation de GPU est une bonne choix pour accélerer les calculs. 
 
+L'idée d'utiliser le GPU est de calculer les valeurs de termes de sortie en parallèle. Ces calculs sont effectués par des Threads distincts et pour ça on a utilisér des indices pour faire un grid de calculs. 
+
+
+On a réussi à implementer les convolution et le subsampling et on les tester pour petites matrices. On a ajouté d'activation pour bien completer les couches et avoir la capacité de faire un modéle non-linéaire.
+
 
 
 
 Partie 3 - Ajout les poids et les dernières couches
 
-Nous pouvons utiliser le fichier Python pour entraîner le réseau neuronal et obtenir les poids et les bias du modèle. 
+Nous avons utilisé le fichier Python pour entraîner le réseau neuronal et obtenir les poids et les bias du modèle. 
 
 Nous avons obtenu des résultats suffisament satisfaisants pour récuperer les parametres:
 <img width="530" alt="image" src="https://github.com/gaspardCh/TP_Hardware/assets/118471792/b538b7be-196d-4831-979c-fd8d43b845ab">
