@@ -75,6 +75,11 @@ On a donc 61706 trainable parameters (on n'as pas fait une batch normalization e
 
 On a recuperé tous les poids dans le fichier FashionMNIST_weights.h5.
 
+On dois ajouter des couches de type:
+
+Flatten- Coller les lignes de la matrice de bout en bout pour obtenir un vecteur.
+
+Dense layer- Multiplier le vecteur d'input par les poids de la couche et ajouter un biais. On dois géneraliser la multiplication matricielle pour multiplier le vecteur d'input par la matrice des poids et uiliser la function MatrixAdd pour ajouter les biais.
 
 
 
