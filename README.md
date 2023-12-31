@@ -22,8 +22,12 @@ En théorie, la complexité est :
  
  pour le GPU: O(1) (tous les termes sont calculés en même temps)
 
+-pour la multiplication:
 
-pour la multiplication, en O(n³) pour le CPU et en O(n) pour le GPU
+ pour le CPU: en O(n³) (Nous avons n*n termes et pour calculer chaque terme, nous devons effectuer n opérations)
+ 
+ pour le GPU: en O(n) (Nous calculons tous les termes en même temps, mais pour calculer chaque terme, nous devons effectuer n opérations)
+ 
 
 on mesure le temps d'exécution des différentes opération pour n = p = 100: 
 pour l'addition, environ 64µs pour le CPU et 146µs pour le GPU
