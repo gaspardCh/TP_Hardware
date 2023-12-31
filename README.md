@@ -12,7 +12,7 @@ On peut voir que le LeNet5 a beaucoup des couches qui sont parallélisable- les 
 
 Partie 1 - Prise en main de Cuda : Multiplication de matrices
 
-La multiplication et l'addition des matrices sont 2 opérations pour lequel chaque terme de l'output peut être calculé indépendamment des autres termes de sortie. Cuda peut nous aider à faire ces calculs en parallèle. Maisest-ce que cette stratégie est mielleure que l'utilisation de CPU, quelle que soit la taille de l'entrée ?
+La multiplication et l'addition des matrices sont 2 opérations pour lequel chaque terme de l'output peut être calculé indépendamment des autres termes de sortie. Cuda peut nous aider à faire ces calculs en parallèle. Mais est-ce que cette stratégie est mielleure que l'utilisation de CPU, quelle que soit la taille de l'entrée ?
 
 En théorie, la complexité est :
 
