@@ -81,8 +81,9 @@ Flatten- Coller les lignes de la matrice de bout en bout pour obtenir un vecteur
 
 Dense layer- Multiplier le vecteur d'input par les poids de la couche et ajouter un biais. On dois géneraliser la multiplication matricielle pour multiplier le vecteur d'input par la matrice des poids et uiliser la function MatrixAdd pour ajouter les biais.
 
+Les dimensions des matrices sont appropriés pour utiliser les GPUs pour accélerer les calculs.
 
-
+Enfin, nous obtiendrons un modèle capable de calculer rapidement des résultats en utilisant des poids réentraînés, grâce à la parallélisation GPU.
 
 
 
